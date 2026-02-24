@@ -1,0 +1,40 @@
+{
+	"geode": "5.0.0",
+	"gd": {
+		"win": "2.2081",
+		"android": "2.2081"
+	},
+	"id": "bunchuq1122.usertheme",
+	"name": "UserTheme",
+	"version": "v1.0.0-alpha.1",
+	"developer": "Bunchuq1122",
+	"description": "Liven up your profile with songs!",
+	"dependencies": {
+		"geode.node-ids": ">=v1.20.0",
+		"hiimjasmine00.user_data_api": {
+			"version": ">=v2.0.0",
+			"required": true
+		}
+	},
+	"settings": {
+		"profile-song-id": {
+			"name": "Profile Song ID",
+			"description": "Newgrounds song ID to show on your profile.",
+			"type": "int",
+			"default": 0,
+			"min": 0,
+			"max": 9999999
+		}
+	},
+	"links": {
+		"community": "https://github.com/bunchuq1122/UserTheme",
+		"source": "https://github.com/bunchuq1122/UserTheme"
+	},
+	"issues": {
+		"info": "Report issues here",
+		"url": "https://github.com/bunchuq1122/UserTheme/issues"
+	},
+	"tags": [
+		"music"
+	]
+}

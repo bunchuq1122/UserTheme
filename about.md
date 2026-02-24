@@ -1,0 +1,10 @@
+# Liven up your profile with songs!
+
+***how to add song***
+1. Open Geode MOD Settings
+2. Put SONG ID into **Profile Song ID** Field
+3. Open your profile at least once
+4. and **Done**
+
+## Support this mod here
+[Github](https://github.com/bunchuq1122/UserTheme)
