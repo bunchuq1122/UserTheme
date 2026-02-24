@@ -5,8 +5,6 @@
 #include <Geode/binding/MusicDownloadManager.hpp>
 #include <Geode/binding/GJAccountManager.hpp>
 
-#include <Geode/fmod/fmod.hpp>
-
 #include <hiimjasmine00.user_data_api/include/UserDataAPI.hpp>
 
 #include <unordered_map>
@@ -14,18 +12,15 @@
 using namespace geode::prelude;
 
 namespace {
-    static std::unordered_map<int, int64_t> s_songCache;
+    static std::unordered_map<int, int64_t> g_songCache;
 
     static constexpr int kMusicID = 0;
 
     static constexpr float kFadeOutSec = 0.25f;
     static constexpr float kFadeInSec  = 0.25f;
 
-    static void uploadSongId(int64_t songId) {
-        if (songId <= 0) return;
-        auto data = matjson::Value::object();
-        data["songId"] = songId;
-        user_data::upload(std::move(data));
+    static std::string makeID(std::string const& suffix) {
+        return fmt::format("{}/{}", Mod::get()->getID(), suffix);
     }
 
     static bool isMyProfile(GJUserScore* score) {
@@ -33,6 +28,13 @@ namespace {
         auto am = GJAccountManager::sharedState();
         int myAcc = am ? am->m_accountID : 0;
         return myAcc > 0 && score->m_accountID == myAcc;
+    }
+
+    static void uploadSongId(int64_t songId) {
+        if (songId <= 0) return;
+        auto data = matjson::Value::object();
+        data["songId"] = songId;
+        user_data::upload(std::move(data));
     }
 
     static int64_t readSongIdFromScore(GJUserScore* score) {
@@ -52,34 +54,6 @@ namespace {
         return songId > 0 ? songId : 0;
     }
 
-    static CCLabelBMFont* ensureLabel(ProfilePage* page, char const* id, std::string const& text, CCPoint pos, float scale, int z) {
-        auto label = typeinfo_cast<CCLabelBMFont*>(page->getChildByID(id));
-        if (!label) {
-            label = CCLabelBMFont::create(text.c_str(), "bigFont.fnt");
-            label->setID(id);
-            label->setScale(scale);
-            label->setAnchorPoint({ 0.f, 0.5f });
-            label->setPosition(pos);
-            page->addChild(label, z);
-        } else {
-            label->setString(text.c_str());
-        }
-        return label;
-    }
-
-    static void setSongUI(ProfilePage* page, int64_t songId, bool downloading) {
-        if (!page) return;
-
-        std::string main = (songId > 0) ? fmt::format("Song: {}", songId) : std::string("Song: (none)");
-        ensureLabel(page, "profile-song-label"_spr, main, {20.f, 32.f}, 0.35f, 3);
-
-        if (songId > 0 && downloading) {
-            ensureLabel(page, "profile-song-status"_spr, "Downloading...", {20.f, 18.f}, 0.28f, 3);
-        } else {
-            if (auto s = page->getChildByID("profile-song-status"_spr)) s->removeFromParent();
-        }
-    }
-
     static std::string menuLoopPath() {
         auto* fu = CCFileUtils::sharedFileUtils();
         auto mp3 = fu->fullPathForFilename("menuLoop.mp3", false);
@@ -89,15 +63,16 @@ namespace {
         return {};
     }
 
+    
     static void setChannelVolume(FMOD::Channel* ch, float v) {
         if (!ch) return;
-        FMOD_Channel_SetVolume(reinterpret_cast<FMOD_CHANNEL*>(ch), v);
+        ch->setVolume(v);
     }
 
     static float getChannelVolume(FMOD::Channel* ch) {
         if (!ch) return 1.f;
         float v = 1.f;
-        FMOD_Channel_GetVolume(reinterpret_cast<FMOD_CHANNEL*>(ch), &v);
+        ch->getVolume(&v);
         return v;
     }
 }
@@ -106,10 +81,8 @@ class $modify(UserThemeProfilePage, ProfilePage) {
     struct Fields {
         
         bool waitingUserData = false;
-        float waitedUserData = 0.f;
-
-        
         bool waitingSong = false;
+        float waitedUserData = 0.f;
         float waitedSong = 0.f;
 
         int64_t lastSongId = 0;
@@ -126,23 +99,43 @@ class $modify(UserThemeProfilePage, ProfilePage) {
         bool menuVolSaved = false;
         float prevMenuVol = 1.f;
 
-        
-        enum class AfterFade {
-            None,
-            StartPreview,       
-            RestoreMenuStart,   
-            FadeInMenu,         
-            FadeInPreview       
-        } after = AfterFade::None;
-
-        
-        bool restoring = false;
+        enum class AfterFade { None, StartPreview } after = AfterFade::None;
     };
 
-        void cancelAllTimers() {
+    CCLabelBMFont* ensureLabel(std::string const& id, std::string const& text, CCPoint pos, float scale, int z) {
+        auto label = typeinfo_cast<CCLabelBMFont*>(this->getChildByID(id));
+        if (!label) {
+            label = CCLabelBMFont::create(text.c_str(), "bigFont.fnt");
+            label->setID(id);
+            label->setScale(scale);
+            label->setAnchorPoint({0.f, 0.5f});
+            label->setPosition(pos);
+            this->addChild(label, z);
+        } else {
+            label->setString(text.c_str());
+        }
+        return label;
+    }
+
+    void setSongUI(int64_t songId, bool downloading) {
+        auto labelID  = makeID("profile-song-label");
+        auto statusID = makeID("profile-song-status");
+
+        std::string main = (songId > 0) ? fmt::format("Song: {}", songId) : std::string("Song: (none)");
+        ensureLabel(labelID, main, {20.f, 32.f}, 0.35f, 3);
+
+        if (songId > 0 && downloading) {
+            ensureLabel(statusID, "Downloading...", {20.f, 18.f}, 0.28f, 3);
+        } else {
+            if (auto n = this->getChildByID(statusID)) n->removeFromParent();
+        }
+    }
+
+    void cancelAllTimers() {
         this->unschedule(schedule_selector(UserThemeProfilePage::pollUserDataReady));
         this->unschedule(schedule_selector(UserThemeProfilePage::pollSongReady));
         this->unschedule(schedule_selector(UserThemeProfilePage::tickFade));
+
         m_fields->waitingUserData = false;
         m_fields->waitingSong = false;
         m_fields->fadeActive = false;
@@ -150,13 +143,11 @@ class $modify(UserThemeProfilePage, ProfilePage) {
     }
 
     void restoreNow() {
-        
         cancelAllTimers();
 
         auto eng = FMODAudioEngine::sharedEngine();
         eng->stopMusic(kMusicID);
 
-        
         auto path = menuLoopPath();
         if (!path.empty()) {
             eng->playMusic(path, true, 0.f, kMusicID);
@@ -166,10 +157,8 @@ class $modify(UserThemeProfilePage, ProfilePage) {
         auto ch = eng->getActiveMusicChannel(kMusicID);
         if (ch) {
             float target = m_fields->menuVolSaved ? m_fields->prevMenuVol : 1.f;
-            FMOD_Channel_SetVolume(reinterpret_cast<FMOD_CHANNEL*>(ch), target);
+            setChannelVolume(ch, target);
         }
-
-        m_fields->restoring = false;
     }
 
     void startFade(float from, float to, float dur, Fields::AfterFade after) {
@@ -185,18 +174,17 @@ class $modify(UserThemeProfilePage, ProfilePage) {
     }
 
     void tickFade(float dt) {
-        auto eng = FMODAudioEngine::sharedEngine();
-        auto ch = eng->getActiveMusicChannel(kMusicID);
-        if (!ch) {
-            
-            m_fields->fadeActive = false;
+        if (!m_fields->fadeActive) {
             this->unschedule(schedule_selector(UserThemeProfilePage::tickFade));
-            m_fields->after = Fields::AfterFade::None;
             return;
         }
 
-        if (!m_fields->fadeActive) {
+        auto eng = FMODAudioEngine::sharedEngine();
+        auto ch = eng->getActiveMusicChannel(kMusicID);
+        if (!ch) {
+            m_fields->fadeActive = false;
             this->unschedule(schedule_selector(UserThemeProfilePage::tickFade));
+            m_fields->after = Fields::AfterFade::None;
             return;
         }
 
@@ -219,35 +207,14 @@ class $modify(UserThemeProfilePage, ProfilePage) {
             eng->stopMusic(kMusicID);
             eng->playMusic(m_fields->lastSongPath, true, 0.f, kMusicID);
 
-            
             auto ch2 = eng->getActiveMusicChannel(kMusicID);
             if (ch2) setChannelVolume(ch2, 0.f);
+
             startFade(0.f, 1.f, kFadeInSec, Fields::AfterFade::None);
-            return;
-        }
-
-        if (after == Fields::AfterFade::RestoreMenuStart) {
-            
-            eng->stopMusic(kMusicID);
-
-            auto path = menuLoopPath();
-            if (!path.empty()) {
-                eng->playMusic(path, true, 0.f, kMusicID);
-
-                
-                auto ch2 = eng->getActiveMusicChannel(kMusicID);
-                if (ch2) setChannelVolume(ch2, 0.f);
-
-                float target = m_fields->menuVolSaved ? m_fields->prevMenuVol : 1.f;
-                startFade(0.f, target, kFadeInSec, Fields::AfterFade::None);
-            }
-
-            m_fields->restoring = false;
-            return;
         }
     }
 
-    void beginPreviewPlayback(std::string const& path) {
+    void beginPreview(std::string const& path) {
         if (path.empty()) return;
 
         auto eng = FMODAudioEngine::sharedEngine();
@@ -261,17 +228,14 @@ class $modify(UserThemeProfilePage, ProfilePage) {
 
         m_fields->lastSongPath = path;
 
-        
         float from = ch ? getChannelVolume(ch) : 1.f;
         startFade(from, 0.f, kFadeOutSec, Fields::AfterFade::StartPreview);
     }
 
     void loadPageFromUserInfo(GJUserScore* score) {
         
-        cancelAllTimers();
-        
         restoreNow();
-        
+
         ProfilePage::loadPageFromUserInfo(score);
 
         auto s = this->m_score ? this->m_score : score;
@@ -283,7 +247,7 @@ class $modify(UserThemeProfilePage, ProfilePage) {
             uploadSongId(mySong);
         }
 
-        setSongUI(this, 0, false);
+        setSongUI(0, false);
 
         
         m_fields->waitingUserData = true;
@@ -314,18 +278,20 @@ class $modify(UserThemeProfilePage, ProfilePage) {
         this->unschedule(schedule_selector(UserThemeProfilePage::pollUserDataReady));
 
         int64_t songId = readSongIdFromScore(s);
-        if (s->m_accountID > 0) s_songCache[s->m_accountID] = songId;
-
         m_fields->lastSongId = songId;
 
+        if (s->m_accountID > 0) g_songCache[s->m_accountID] = songId;
+
         if (songId <= 0) {
-            setSongUI(this, 0, false);
+            setSongUI(0, false);
+            
+            restoreNow();
             return;
         }
 
         auto mdm = MusicDownloadManager::sharedState();
         if (!mdm) {
-            setSongUI(this, songId, false);
+            setSongUI(songId, false);
             return;
         }
 
@@ -334,7 +300,7 @@ class $modify(UserThemeProfilePage, ProfilePage) {
             mdm->downloadSong(static_cast<int>(songId));
         }
 
-        setSongUI(this, songId, !downloaded);
+        setSongUI(songId, !downloaded);
 
         
         m_fields->waitingSong = true;
@@ -354,7 +320,7 @@ class $modify(UserThemeProfilePage, ProfilePage) {
 
         m_fields->waitedSong += dt;
         if (m_fields->waitedSong >= 10.f) {
-            setSongUI(this, m_fields->lastSongId, false);
+            setSongUI(m_fields->lastSongId, false);
             m_fields->waitingSong = false;
             this->unschedule(schedule_selector(UserThemeProfilePage::pollSongReady));
             return;
@@ -362,7 +328,7 @@ class $modify(UserThemeProfilePage, ProfilePage) {
 
         auto songId = m_fields->lastSongId;
         if (songId <= 0) {
-            setSongUI(this, 0, false);
+            setSongUI(0, false);
             m_fields->waitingSong = false;
             this->unschedule(schedule_selector(UserThemeProfilePage::pollSongReady));
             return;
@@ -372,21 +338,22 @@ class $modify(UserThemeProfilePage, ProfilePage) {
         if (!mdm) return;
 
         if (!mdm->isSongDownloaded(static_cast<int>(songId))) {
-            setSongUI(this, songId, true);
+            setSongUI(songId, true);
             return;
         }
 
-        
-        setSongUI(this, songId, false);
+        setSongUI(songId, false);
 
         auto path = mdm->pathForSong(static_cast<int>(songId));
-        if (!path.empty()) {
-            m_fields->waitingSong = false;
-            this->unschedule(schedule_selector(UserThemeProfilePage::pollSongReady));
-            beginPreviewPlayback(path);
-        }
+        if (path.empty()) return;
+
+        m_fields->waitingSong = false;
+        this->unschedule(schedule_selector(UserThemeProfilePage::pollSongReady));
+
+        beginPreview(path);
     }
 
+    
     void onClose(CCObject* sender) {
         restoreNow();
         ProfilePage::onClose(sender);

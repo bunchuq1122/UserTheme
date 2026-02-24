@@ -8,3 +8,7 @@
 
 ## Support this mod here
 [Github](https://github.com/bunchuq1122/UserTheme)
+
+## Credits
+[UserDataAPI](https://geode-sdk.org/mods/hiimjasmine00.user_data_api)
+by hiimjasmine00
