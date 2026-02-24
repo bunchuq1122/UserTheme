@@ -12,7 +12,7 @@
 using namespace geode::prelude;
 
 namespace {
-    static std::unordered_map<int, int64_t> g_songCache;
+    static std::unordered_map<int, int64_t> s_songCache;
 
     static constexpr int kMusicID = 0;
 
@@ -280,7 +280,7 @@ class $modify(UserThemeProfilePage, ProfilePage) {
         int64_t songId = readSongIdFromScore(s);
         m_fields->lastSongId = songId;
 
-        if (s->m_accountID > 0) g_songCache[s->m_accountID] = songId;
+        if (s->m_accountID > 0) s_songCache[s->m_accountID] = songId;
 
         if (songId <= 0) {
             setSongUI(0, false);
