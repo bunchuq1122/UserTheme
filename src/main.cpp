@@ -120,8 +120,8 @@ class $modify(UserThemeProfilePage, ProfilePage) {
     void setSongUI(int64_t songId, bool downloading) {
         auto labelID  = makeID("profile-song-label");
         auto statusID = makeID("profile-song-status");
-
-        std::string main = (songId > 0) ? fmt::format("Song: {}", songId) : std::string("Song: (none)");
+        
+        std::string main = (songId > 0) ? fmt::format("Song: {}", songId) : std::string("Song: not yet");
         ensureLabel(labelID, main, {20.f, 32.f}, 0.35f, 3);
 
         if (songId > 0 && downloading) {
@@ -151,14 +151,37 @@ class $modify(UserThemeProfilePage, ProfilePage) {
         auto path = menuLoopPath();
         if (!path.empty()) {
             eng->playMusic(path, true, 0.f, kMusicID);
+            this->schedule(schedule_selector(UserThemeProfilePage::spawnMusicNote), 0.4f);
         }
 
-        
         auto ch = eng->getActiveMusicChannel(kMusicID);
         if (ch) {
             float target = m_fields->menuVolSaved ? m_fields->prevMenuVol : 1.f;
             setChannelVolume(ch, target);
         }
+    }
+
+    void spawnMusicNote(float dt) {
+        auto winSize = CCDirector::sharedDirector()->getWinSize();
+
+        auto note = CCSprite::createWithSpriteFrameName("GJ_musicIcon_001.png");
+        note->setScale(0.5f);
+        note->setID(makeID("profile-song-note"));
+
+        float x = winSize.width - 30.f;
+        float startY = 50.f;
+
+        note->setPosition({x, startY});
+        this->addChild(note, 100);
+
+        float randomOffset = rand() % 60 - 30;
+
+        auto move = CCEaseSineOut::create(CCMoveBy::create(2.f, {randomOffset, 250.f}));
+        auto fade = CCFadeOut::create(1.5f);
+        auto spawn = CCSpawn::create(move, fade, nullptr);
+        auto remove = CCCallFuncN::create(note, callfuncN_selector(CCNode::removeFromParent));
+
+        note->runAction(CCSequence::create(spawn, remove, nullptr));
     }
 
     void startFade(float from, float to, float dur, Fields::AfterFade after) {
@@ -206,6 +229,7 @@ class $modify(UserThemeProfilePage, ProfilePage) {
             
             eng->stopMusic(kMusicID);
             eng->playMusic(m_fields->lastSongPath, true, 0.f, kMusicID);
+            this->schedule(schedule_selector(UserThemeProfilePage::spawnMusicNote), 0.4f);
 
             auto ch2 = eng->getActiveMusicChannel(kMusicID);
             if (ch2) setChannelVolume(ch2, 0.f);

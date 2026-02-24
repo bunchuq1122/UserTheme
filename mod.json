@@ -23,7 +23,26 @@
 			"type": "int",
 			"default": 0,
 			"min": 0,
-			"max": 9999999
+			"max": 9999999,
+			"control": {
+				"slider": false,
+				"arrows": false,
+				"big-arrows": false,
+				"input": true
+			}
+		},
+		"profile=song-offset": {
+			"name": "Profile Song Offset",
+			"description": "Offset of your song.",
+			"type": "float",
+			"default": 0,
+			"max": 999999,
+			"control": {
+				"arrows": false,
+				"slider": false,
+				"input": true,
+				"big-arrows": false
+			}
 		}
 	},
 	"links": {
