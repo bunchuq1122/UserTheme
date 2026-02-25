@@ -1,12 +1,11 @@
 {
 	"geode": "5.0.1",
 	"gd": {
-		"win": "2.2081",
-		"android": "2.2081"
+		"win": "2.2081"
 	},
 	"id": "bunchuq1122.usertheme",
 	"name": "Custom Profile Music",
-	"version": "v1.0.0-alpha.3",
+	"version": "v1.0.1",
 	"developer": "Bunchuq1122",
 	"description": "Liven up your profile with songs!",
 	"dependencies": {
@@ -29,19 +28,6 @@
 				"arrows": false,
 				"big-arrows": false,
 				"input": true
-			}
-		},
-		"profile=song-offset": {
-			"name": "Profile Song Offset",
-			"description": "Offset of your song.",
-			"type": "float",
-			"default": 0,
-			"max": 999999,
-			"control": {
-				"arrows": false,
-				"slider": false,
-				"input": true,
-				"big-arrows": false
 			}
 		}
 	},

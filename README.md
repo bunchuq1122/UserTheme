@@ -9,5 +9,4 @@
 Share your theme with everyone! *(thx for UserDataAPI)*
 
 ## Credits
-[UserDataAPI](https://geode-sdk.org/mods/hiimjasmine00.user_data_api)
-by hiimjasmine00
+[**UserDataAPI**](https://geode-sdk.org/mods/hiimjasmine00.user_data_api) - by hiimjasmine00

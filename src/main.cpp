@@ -1,12 +1,13 @@
 #include <Geode/Geode.hpp>
+
 #include <Geode/modify/ProfilePage.hpp>
+#include <Geode/modify/FMODAudioEngine.hpp>
+#include <Geode/modify/MusicDownloadManager.hpp>
+#include <Geode/modify/GJAccountManager.hpp>
+#include <Geode/modify/GameManager.hpp>
+#include <Geode/modify/LevelInfoLayer.hpp>
 
-#include <Geode/binding/FMODAudioEngine.hpp>
-#include <Geode/binding/MusicDownloadManager.hpp>
-#include <Geode/binding/GJAccountManager.hpp>
-#include <Geode/binding/GameManager.hpp>
-#include <Geode/binding/SongInfoLayer.hpp>
-
+#include <Geode/ui/Popup.hpp>
 
 #include <hiimjasmine00.user_data_api/include/UserDataAPI.hpp>
 
@@ -80,7 +81,7 @@ namespace {
     }
 }
 
-class $modify(UserThemeProfilePage, ProfilePage) {
+class $modify(userThemeProfilePage, ProfilePage) {
     struct Fields {
         
         bool waitingUserData = false;
@@ -182,9 +183,9 @@ class $modify(UserThemeProfilePage, ProfilePage) {
     }
 
     void cancelAllTimers() {
-        this->unschedule(schedule_selector(UserThemeProfilePage::pollUserDataReady));
-        this->unschedule(schedule_selector(UserThemeProfilePage::pollSongReady));
-        this->unschedule(schedule_selector(UserThemeProfilePage::tickFade));
+        this->unschedule(schedule_selector(userThemeProfilePage::pollUserDataReady));
+        this->unschedule(schedule_selector(userThemeProfilePage::pollSongReady));
+        this->unschedule(schedule_selector(userThemeProfilePage::tickFade));
 
         m_fields->waitingUserData = false;
         m_fields->waitingSong = false;
@@ -250,13 +251,13 @@ class $modify(UserThemeProfilePage, ProfilePage) {
         m_fields->fadeTo = to;
         m_fields->after = after;
 
-        this->unschedule(schedule_selector(UserThemeProfilePage::tickFade));
-        this->schedule(schedule_selector(UserThemeProfilePage::tickFade), 0.f);
+        this->unschedule(schedule_selector(userThemeProfilePage::tickFade));
+        this->schedule(schedule_selector(userThemeProfilePage::tickFade), 0.f);
     }
 
     void tickFade(float dt) {
         if (!m_fields->fadeActive) {
-            this->unschedule(schedule_selector(UserThemeProfilePage::tickFade));
+            this->unschedule(schedule_selector(userThemeProfilePage::tickFade));
             return;
         }
 
@@ -264,7 +265,7 @@ class $modify(UserThemeProfilePage, ProfilePage) {
         auto ch = eng->getActiveMusicChannel(kMusicID);
         if (!ch) {
             m_fields->fadeActive = false;
-            this->unschedule(schedule_selector(UserThemeProfilePage::tickFade));
+            this->unschedule(schedule_selector(userThemeProfilePage::tickFade));
             m_fields->after = Fields::AfterFade::None;
             return;
         }
@@ -278,7 +279,7 @@ class $modify(UserThemeProfilePage, ProfilePage) {
 
         
         m_fields->fadeActive = false;
-        this->unschedule(schedule_selector(UserThemeProfilePage::tickFade));
+        this->unschedule(schedule_selector(userThemeProfilePage::tickFade));
 
         auto after = m_fields->after;
         m_fields->after = Fields::AfterFade::None;
@@ -287,7 +288,7 @@ class $modify(UserThemeProfilePage, ProfilePage) {
             
             eng->stopMusic(kMusicID);
             eng->playMusic(m_fields->lastSongPath, true, 0.f, kMusicID);
-            this->schedule(schedule_selector(UserThemeProfilePage::spawnMusicNote), 0.4f);
+            this->schedule(schedule_selector(userThemeProfilePage::spawnMusicNote), 0.4f);
 
             auto ch2 = eng->getActiveMusicChannel(kMusicID);
             if (ch2) setChannelVolume(ch2, 0.f);
@@ -335,29 +336,29 @@ class $modify(UserThemeProfilePage, ProfilePage) {
         m_fields->waitingUserData = true;
         m_fields->waitedUserData = 0.f;
 
-        this->unschedule(schedule_selector(UserThemeProfilePage::pollUserDataReady));
-        this->schedule(schedule_selector(UserThemeProfilePage::pollUserDataReady), 0.f);
+        this->unschedule(schedule_selector(userThemeProfilePage::pollUserDataReady));
+        this->schedule(schedule_selector(userThemeProfilePage::pollUserDataReady), 0.f);
     }
 
     void pollUserDataReady(float dt) {
         auto s = this->m_score;
         if (!m_fields->waitingUserData || !s) {
             m_fields->waitingUserData = false;
-            this->unschedule(schedule_selector(UserThemeProfilePage::pollUserDataReady));
+            this->unschedule(schedule_selector(userThemeProfilePage::pollUserDataReady));
             return;
         }
 
         m_fields->waitedUserData += dt;
         if (m_fields->waitedUserData >= 5.f) {
             m_fields->waitingUserData = false;
-            this->unschedule(schedule_selector(UserThemeProfilePage::pollUserDataReady));
+            this->unschedule(schedule_selector(userThemeProfilePage::pollUserDataReady));
             return;
         }
 
         if (!user_data::contains(s, Mod::get()->getID())) return;
 
         m_fields->waitingUserData = false;
-        this->unschedule(schedule_selector(UserThemeProfilePage::pollUserDataReady));
+        this->unschedule(schedule_selector(userThemeProfilePage::pollUserDataReady));
 
         int64_t songId = readSongIdFromScore(s);
         m_fields->lastSongId = songId;
@@ -388,15 +389,15 @@ class $modify(UserThemeProfilePage, ProfilePage) {
         m_fields->waitingSong = true;
         m_fields->waitedSong = 0.f;
 
-        this->unschedule(schedule_selector(UserThemeProfilePage::pollSongReady));
-        this->schedule(schedule_selector(UserThemeProfilePage::pollSongReady), 0.1f);
+        this->unschedule(schedule_selector(userThemeProfilePage::pollSongReady));
+        this->schedule(schedule_selector(userThemeProfilePage::pollSongReady), 0.1f);
     }
 
     void pollSongReady(float dt) {
         auto s = this->m_score;
         if (!m_fields->waitingSong || !s) {
             m_fields->waitingSong = false;
-            this->unschedule(schedule_selector(UserThemeProfilePage::pollSongReady));
+            this->unschedule(schedule_selector(userThemeProfilePage::pollSongReady));
             return;
         }
 
@@ -404,7 +405,7 @@ class $modify(UserThemeProfilePage, ProfilePage) {
         if (m_fields->waitedSong >= 10.f) {
             setSongUI(m_fields->lastSongId, false);
             m_fields->waitingSong = false;
-            this->unschedule(schedule_selector(UserThemeProfilePage::pollSongReady));
+            this->unschedule(schedule_selector(userThemeProfilePage::pollSongReady));
             return;
         }
 
@@ -412,7 +413,7 @@ class $modify(UserThemeProfilePage, ProfilePage) {
         if (songId <= 0) {
             setSongUI(0, false);
             m_fields->waitingSong = false;
-            this->unschedule(schedule_selector(UserThemeProfilePage::pollSongReady));
+            this->unschedule(schedule_selector(userThemeProfilePage::pollSongReady));
             return;
         }
 
@@ -430,7 +431,7 @@ class $modify(UserThemeProfilePage, ProfilePage) {
         if (path.empty()) return;
 
         m_fields->waitingSong = false;
-        this->unschedule(schedule_selector(UserThemeProfilePage::pollSongReady));
+        this->unschedule(schedule_selector(userThemeProfilePage::pollSongReady));
 
         beginPreview(path);
     }
@@ -449,5 +450,58 @@ class $modify(UserThemeProfilePage, ProfilePage) {
     void onExit() {
         restoreNow();
         ProfilePage::onExit();
+    }
+};
+
+
+class $modify(setProfileTheme, LevelInfoLayer) {
+    bool init(GJGameLevel* level, bool challenge) {
+        if (!LevelInfoLayer::init(level, challenge)) return false;
+        
+        if (m_level->m_songID != Mod::get()->getSettingValue<int>("profile-song-id")) {
+            auto csw = this->getChildByID("custom-songs-widget");
+
+            auto menu = CCMenu::create();
+            auto spr = BasedButtonSprite::createWithSpriteFrameName("GJ_musicIcon_001.png");
+            auto btn = CCMenuItemSpriteExtra::create(
+                spr,
+                this,
+                menu_selector(setProfileTheme::setProfileSong)
+            );
+
+            menu->setID(makeID("set-song-menu"));
+            menu->setPosition({
+                134,
+                66
+            });
+            menu->setContentSize({27,27});
+            menu->addChild(btn);
+
+            csw->addChild(menu);
+        }
+
+        return true;
+    }
+
+    void setProfileSong(CCObject* sender) {
+        geode::createQuickPopup("Are you sure?",
+        fmt::format("Set <cy>{} - {}</c> as your <cj>profile music</c>",
+            m_songWidget->m_songInfoObject->m_songName
+        , m_songWidget->m_songInfoObject->m_artistName),
+        "no", "yes",
+        [this](auto,bool btn2){
+            if (btn2) {
+                uploadSongId(m_level->m_songID);
+                Mod::get()->setSettingValue("profile-song-id", m_level->m_songID);
+                removeBtn();
+            }
+        });
+        return;
+    }
+
+    void removeBtn() {
+        auto csw = this->getChildByID("custom-songs-widget");
+        csw->removeChildByID(makeID("set-song-menu"));
+        return;
     }
 };
