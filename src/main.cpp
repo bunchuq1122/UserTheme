@@ -4,6 +4,9 @@
 #include <Geode/binding/FMODAudioEngine.hpp>
 #include <Geode/binding/MusicDownloadManager.hpp>
 #include <Geode/binding/GJAccountManager.hpp>
+#include <Geode/binding/GameManager.hpp>
+#include <Geode/binding/SongInfoLayer.hpp>
+
 
 #include <hiimjasmine00.user_data_api/include/UserDataAPI.hpp>
 
@@ -57,7 +60,7 @@ namespace {
     static std::string menuLoopPath() {
         auto* fu = CCFileUtils::sharedFileUtils();
         auto mp3 = fu->fullPathForFilename("menuLoop.mp3", false);
-        if (!mp3.empty()) return mp3;
+        if (!mp3.empty()) return mp3; // remove later or add .ogg
         auto ogg = fu->fullPathForFilename("menuLoop.ogg", false);
         if (!ogg.empty()) return ogg;
         return {};
@@ -88,14 +91,16 @@ class $modify(UserThemeProfilePage, ProfilePage) {
         int64_t lastSongId = 0;
         std::string lastSongPath;
 
-        
         bool fadeActive = false;
         float fadeT = 0.f;
         float fadeDur = 0.f;
         float fadeFrom = 1.f;
         float fadeTo = 1.f;
 
-        
+        CCLabelBMFont* m_songLabel = nullptr;
+        int m_currentBPM = 0;
+        float m_baseScale = 0.35f;
+
         bool menuVolSaved = false;
         float prevMenuVol = 1.f;
 
@@ -120,14 +125,59 @@ class $modify(UserThemeProfilePage, ProfilePage) {
     void setSongUI(int64_t songId, bool downloading) {
         auto labelID  = makeID("profile-song-label");
         auto statusID = makeID("profile-song-status");
-        
-        std::string main = (songId > 0) ? fmt::format("Song: {}", songId) : std::string("Song: not yet");
-        ensureLabel(labelID, main, {20.f, 32.f}, 0.35f, 3);
+
+        std::string main;
+        int bpm = 0;
+
+        if (songId > 0) {
+            auto mdm = MusicDownloadManager::sharedState();
+            if (!mdm) return;
+
+            auto song = mdm->getSongInfoObject(songId);
+
+            if (song) {
+                main = fmt::format(
+                    "Now Playing:\n {} - {} ({})",
+                    song->m_songName,
+                    song->m_artistName,
+                    songId
+                );
+
+                bpm = song->m_BPM == 0 ? 120 : song->m_BPM;
+            } else {
+                main = fmt::format(
+                    "Now Playing:\n Unknown ({})",
+                    songId
+                );
+            }
+        } else {
+            main = "Song: not yet";
+        }
+
+        m_fields->m_songLabel = ensureLabel(labelID, main, {20.f, 32.f}, m_fields->m_baseScale, 3);
+
+        m_fields->m_currentBPM = bpm;
+
+        if (m_fields->m_songLabel && m_fields->m_currentBPM > 0) {
+            float beatDuration = 60.f / m_fields->m_currentBPM;
+
+            m_fields->m_songLabel->stopAllActions();
+
+            auto pulseUp = CCScaleTo::create(beatDuration * 0.5f, m_fields->m_baseScale * 1.1f);
+            auto pulseDown = CCScaleTo::create(beatDuration * 0.5f, m_fields->m_baseScale);
+
+            auto seq = CCSequence::create(pulseUp, pulseDown, nullptr);
+
+            m_fields->m_songLabel->runAction(
+                CCRepeatForever::create(seq)
+            );
+        }
 
         if (songId > 0 && downloading) {
             ensureLabel(statusID, "Downloading...", {20.f, 18.f}, 0.28f, 3);
         } else {
-            if (auto n = this->getChildByID(statusID)) n->removeFromParent();
+            if (auto n = this->getChildByID(statusID))
+                n->removeFromParent();
         }
     }
 
@@ -151,7 +201,6 @@ class $modify(UserThemeProfilePage, ProfilePage) {
         auto path = menuLoopPath();
         if (!path.empty()) {
             eng->playMusic(path, true, 0.f, kMusicID);
-            this->schedule(schedule_selector(UserThemeProfilePage::spawnMusicNote), 0.4f);
         }
 
         auto ch = eng->getActiveMusicChannel(kMusicID);
@@ -180,7 +229,16 @@ class $modify(UserThemeProfilePage, ProfilePage) {
         auto fade = CCFadeOut::create(1.5f);
         auto spawn = CCSpawn::create(move, fade, nullptr);
         auto remove = CCCallFuncN::create(note, callfuncN_selector(CCNode::removeFromParent));
+        
+        // note
+        if (auto score = this->m_score) {
+            auto gm = GameManager::sharedState();
 
+            ccColor3B col = gm->colorForIdx(score->m_color1);
+
+            note->setColor({col.r, col.g, col.b});
+        }
+        
         note->runAction(CCSequence::create(spawn, remove, nullptr));
     }
 
