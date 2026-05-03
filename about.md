@@ -9,7 +9,7 @@
 Share your theme with everyone! *(thx for UserDataAPI)*
 
 ## Support this mod
-- [Github](https://github.com/bunchuq1122/UserTheme)
+- [**Github**](https://github.com/bunchuq1122/UserTheme)
 
 ## Credit
 - [**UserDataAPI**](https://geode-sdk.org/mods/hiimjasmine00.user_data_api) - 

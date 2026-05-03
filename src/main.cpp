@@ -23,10 +23,6 @@ namespace {
     static constexpr float kFadeOutSec = 0.25f;
     static constexpr float kFadeInSec  = 0.25f;
 
-    static std::string makeID(std::string const& suffix) {
-        return fmt::format("{}/{}", Mod::get()->getID(), suffix);
-    }
-
     static bool isMyProfile(GJUserScore* score) {
         if (!score) return false;
         auto am = GJAccountManager::sharedState();
@@ -38,6 +34,16 @@ namespace {
         if (songId <= 0) return;
         auto data = matjson::Value::object();
         data["songId"] = songId;
+        user_data::upload(std::move(data));
+    }
+
+    static void uploadSongData(int64_t songId, float offset) {
+        if (songId <= 0) return;
+
+        auto data = matjson::Value::object();
+        data["songId"] = songId;
+        data["offset"] = offset;
+
         user_data::upload(std::move(data));
     }
 
@@ -58,15 +64,21 @@ namespace {
         return songId > 0 ? songId : 0;
     }
 
-    static std::string menuLoopPath() {
-        auto* fu = CCFileUtils::sharedFileUtils();
-        auto mp3 = fu->fullPathForFilename("menuLoop.mp3", false);
-        if (!mp3.empty()) return mp3; // remove later or add .ogg
-        auto ogg = fu->fullPathForFilename("menuLoop.ogg", false);
-        if (!ogg.empty()) return ogg;
-        return {};
-    }
+    static float readSongOffsetFromScore(GJUserScore* score) {
+        if (!score) return 0.f;
 
+        auto const modID = Mod::get()->getID();
+        if (!user_data::contains(score, modID)) return 0.f;
+
+        auto res = user_data::get<matjson::Value>(score, modID);
+        if (res.isErr()) return 0.f;
+
+        auto const& v = res.unwrap();
+        auto offsetRes = v["offset"].asDouble();
+        if (offsetRes.isErr()) return 0.f;
+
+        return static_cast<float>(std::max(0.0, offsetRes.unwrap()));
+    }
     
     static void setChannelVolume(FMOD::Channel* ch, float v) {
         if (!ch) return;
@@ -90,6 +102,7 @@ class $modify(userThemeProfilePage, ProfilePage) {
         float waitedSong = 0.f;
 
         int64_t lastSongId = 0;
+        int lastSongOffset = 0;
         std::string lastSongPath;
 
         bool fadeActive = false;
@@ -124,8 +137,8 @@ class $modify(userThemeProfilePage, ProfilePage) {
     }
 
     void setSongUI(int64_t songId, bool downloading) {
-        auto labelID  = makeID("profile-song-label");
-        auto statusID = makeID("profile-song-status");
+        auto labelID  = "profile-song-label"_spr;
+        auto statusID = "profile-song-status"_spr;
 
         std::string main;
         int bpm = 0;
@@ -196,19 +209,9 @@ class $modify(userThemeProfilePage, ProfilePage) {
     void restoreNow() {
         cancelAllTimers();
 
-        auto eng = FMODAudioEngine::sharedEngine();
-        eng->stopMusic(kMusicID);
-
-        auto path = menuLoopPath();
-        if (!path.empty()) {
-            eng->playMusic(path, true, 0.f, kMusicID);
-        }
-
-        auto ch = eng->getActiveMusicChannel(kMusicID);
-        if (ch) {
-            float target = m_fields->menuVolSaved ? m_fields->prevMenuVol : 1.f;
-            setChannelVolume(ch, target);
-        }
+        auto gm = GameManager::get();
+        gm->sharedState()->fadeInMenuMusic();
+        return;
     }
 
     void spawnMusicNote(float dt) {
@@ -216,7 +219,7 @@ class $modify(userThemeProfilePage, ProfilePage) {
 
         auto note = CCSprite::createWithSpriteFrameName("GJ_musicIcon_001.png");
         note->setScale(0.5f);
-        note->setID(makeID("profile-song-note"));
+        note->setID("profile-song-note"_spr);
 
         float x = winSize.width - 30.f;
         float startY = 50.f;
@@ -229,7 +232,6 @@ class $modify(userThemeProfilePage, ProfilePage) {
         auto move = CCEaseSineOut::create(CCMoveBy::create(2.f, {randomOffset, 250.f}));
         auto fade = CCFadeOut::create(1.5f);
         auto spawn = CCSpawn::create(move, fade, nullptr);
-        auto remove = CCCallFuncN::create(note, callfuncN_selector(CCNode::removeFromParent));
         
         // note
         if (auto score = this->m_score) {
@@ -240,7 +242,7 @@ class $modify(userThemeProfilePage, ProfilePage) {
             note->setColor({col.r, col.g, col.b});
         }
         
-        note->runAction(CCSequence::create(spawn, remove, nullptr));
+        note->runAction(CCSequence::create(spawn, CCRemoveSelf::create(), nullptr));
     }
 
     void startFade(float from, float to, float dur, Fields::AfterFade after) {
@@ -288,6 +290,12 @@ class $modify(userThemeProfilePage, ProfilePage) {
             
             eng->stopMusic(kMusicID);
             eng->playMusic(m_fields->lastSongPath, true, 0.f, kMusicID);
+
+            int offsetMs = static_cast<int>(m_fields->lastSongOffset * 1000);
+            if (offsetMs > 0) {
+                eng->setMusicTimeMS(offsetMs, true, kMusicID);
+            }
+            
             this->schedule(schedule_selector(userThemeProfilePage::spawnMusicNote), 0.4f);
 
             auto ch2 = eng->getActiveMusicChannel(kMusicID);
@@ -302,7 +310,6 @@ class $modify(userThemeProfilePage, ProfilePage) {
 
         auto eng = FMODAudioEngine::sharedEngine();
         auto ch = eng->getActiveMusicChannel(kMusicID);
-
         
         if (ch && !m_fields->menuVolSaved) {
             m_fields->prevMenuVol = getChannelVolume(ch);
@@ -327,7 +334,8 @@ class $modify(userThemeProfilePage, ProfilePage) {
         
         if (isMyProfile(s)) {
             auto mySong = Mod::get()->getSettingValue<int64_t>("profile-song-id");
-            uploadSongId(mySong);
+            auto myOffset = Mod::get()->getSettingValue<double>("profile-song-offset");
+            uploadSongData(mySong, myOffset);
         }
 
         setSongUI(0, false);
@@ -361,7 +369,9 @@ class $modify(userThemeProfilePage, ProfilePage) {
         this->unschedule(schedule_selector(userThemeProfilePage::pollUserDataReady));
 
         int64_t songId = readSongIdFromScore(s);
+        float offset = readSongOffsetFromScore(s);
         m_fields->lastSongId = songId;
+        m_fields->lastSongOffset = offset;
 
         if (s->m_accountID > 0) s_songCache[s->m_accountID] = songId;
 
@@ -385,7 +395,6 @@ class $modify(userThemeProfilePage, ProfilePage) {
 
         setSongUI(songId, !downloaded);
 
-        
         m_fields->waitingSong = true;
         m_fields->waitedSong = 0.f;
 
@@ -460,6 +469,7 @@ class $modify(setProfileTheme, LevelInfoLayer) {
         
         if (m_level->m_songID != Mod::get()->getSettingValue<int>("profile-song-id")) {
             auto csw = this->getChildByID("custom-songs-widget");
+            if (!csw) return true;
 
             auto menu = CCMenu::create();
             auto spr = BasedButtonSprite::createWithSpriteFrameName("GJ_musicIcon_001.png");
@@ -469,7 +479,7 @@ class $modify(setProfileTheme, LevelInfoLayer) {
                 menu_selector(setProfileTheme::setProfileSong)
             );
 
-            menu->setID(makeID("set-song-menu"));
+            menu->setID("set-song-menu"_spr);
             menu->setPosition({
                 134,
                 66
@@ -493,6 +503,7 @@ class $modify(setProfileTheme, LevelInfoLayer) {
             if (btn2) {
                 uploadSongId(m_level->m_songID);
                 Mod::get()->setSettingValue("profile-song-id", m_level->m_songID);
+                Mod::get()->setSettingValue("profile-song-offset", 0.f);
                 removeBtn();
             }
         });
@@ -501,7 +512,8 @@ class $modify(setProfileTheme, LevelInfoLayer) {
 
     void removeBtn() {
         auto csw = this->getChildByID("custom-songs-widget");
-        csw->removeChildByID(makeID("set-song-menu"));
+        if (!csw) return;
+        csw->removeChildByID("set-song-menu"_spr);
         return;
     }
 };

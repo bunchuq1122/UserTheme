@@ -6,3 +6,6 @@
 - **floating notes** added
 - *bouncing text*
 - Stopped supporting android :(
+
+# 1.0.2
+- ok.
