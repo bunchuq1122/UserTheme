@@ -138,8 +138,8 @@ class $modify(userThemeProfilePage, ProfilePage) {
 
     void setSongUI(int64_t songId, bool downloading) {
         auto md = Mod::get()->getID();
-        auto labelID  = md+"profile-song-label"_spr;
-        auto statusID = md+"profile-song-status"_spr;
+        auto labelID  = md+"\\profile-song-label"_spr;
+        auto statusID = md+"\\profile-song-status"_spr;
 
         std::string main;
         int bpm = 0;
@@ -221,7 +221,7 @@ class $modify(userThemeProfilePage, ProfilePage) {
         auto md = Mod::get()->getID();
         auto note = CCSprite::createWithSpriteFrameName("GJ_musicIcon_001.png");
         note->setScale(0.5f);
-        note->setID(md+"profile-song-note"_spr);
+        note->setID(md+"\\profile-song-note"_spr);
 
         float x = winSize.width - 30.f;
         float startY = 50.f;
@@ -483,7 +483,7 @@ class $modify(setProfileTheme, LevelInfoLayer) {
 
             auto md = Mod::get()->getID();
 
-            menu->setID(md+"set-song-menu"_spr);
+            menu->setID("set-song-menu"_spr);
             menu->setPosition({
                 134,
                 66
