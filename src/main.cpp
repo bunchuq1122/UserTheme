@@ -219,7 +219,7 @@ class $modify(userThemeProfilePage, ProfilePage) {
 
         auto note = CCSprite::createWithSpriteFrameName("GJ_musicIcon_001.png");
         note->setScale(0.5f);
-        note->setID("note"); // did i fix it correctly?
+         // did i fix it correctly?
 
         float x = winSize.width - 30.f;
         float startY = 50.f;
