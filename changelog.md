@@ -15,3 +15,6 @@
 
 # 1.0.4
 - id prefix fixed again
+
+# 1.0.5
+- again
