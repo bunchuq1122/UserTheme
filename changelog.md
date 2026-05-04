@@ -10,11 +10,6 @@
 # 1.0.2
 - ok.
 
-# 1.0.3
+# 1.0.3 - 1.0.6
 - id prefix fixed
-
-# 1.0.4
-- id prefix fixed again
-
-# 1.0.5
-- again
+- some hotfixes

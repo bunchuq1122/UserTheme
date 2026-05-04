@@ -30,13 +30,6 @@ namespace {
         return myAcc > 0 && score->m_accountID == myAcc;
     }
 
-    static void uploadSongId(int64_t songId) {
-        if (songId <= 0) return;
-        auto data = matjson::Value::object();
-        data["songId"] = songId;
-        user_data::upload(std::move(data));
-    }
-
     static void uploadSongData(int64_t songId, float offset) {
         if (songId <= 0) return;
 
@@ -335,7 +328,7 @@ class $modify(userThemeProfilePage, ProfilePage) {
         
         if (isMyProfile(s)) {
             auto mySong = Mod::get()->getSettingValue<int64_t>("profile-song-id");
-            auto myOffset = Mod::get()->getSettingValue<double>("profile-song-offset");
+            auto myOffset = Mod::get()->getSettingValue<int>("profile-song-offset");
             uploadSongData(mySong, myOffset);
         }
 
@@ -502,7 +495,7 @@ class $modify(setProfileTheme, LevelInfoLayer) {
         "no", "yes",
         [this](auto,bool btn2){
             if (btn2) {
-                uploadSongId(m_level->m_songID);
+                uploadSongData(m_level->m_songID, 0);
                 Mod::get()->setSettingValue("profile-song-id", m_level->m_songID);
                 Mod::get()->setSettingValue("profile-song-offset", 0.f);
                 removeBtn();
