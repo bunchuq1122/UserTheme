@@ -120,7 +120,8 @@ class $modify(userThemeProfilePage, ProfilePage) {
             label->setScale(scale);
             label->setAnchorPoint({0.f, 0.5f});
             label->setPosition(pos);
-            m_mainLayer->addChild(label, z);
+            m_mainLayer->addChild(label);
+            label->setZOrder(z);
         } else {
             label->setString(text.c_str());
         }
@@ -225,7 +226,7 @@ class $modify(userThemeProfilePage, ProfilePage) {
             notes = CCMenu::create();
             notes->setID("profile-song-note"_spr);
             notes->setPosition(CCPointZero);
-            m_mainLayer->addChild(notes, 100);
+            m_mainLayer->addChild(notes);
         }
 
         auto note = CCSprite::createWithSpriteFrameName("GJ_musicIcon_001.png");
