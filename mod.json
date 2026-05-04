@@ -5,7 +5,7 @@
 	},
 	"id": "bunchuq1122.usertheme",
 	"name": "Custom Profile Music",
-	"version": "v1.0.6-alpha.2",
+	"version": "v1.0.6-alpha.3",
 	"developer": "Bunchuq1122",
 	"description": "Liven up your profile with songs!",
 	"dependencies": {
@@ -18,11 +18,10 @@
 	"settings": {
 		"profile-song-id": {
 			"name": "Profile Song ID",
-			"description": "Newgrounds song ID to show on your profile.",
+			"description": "Newgrounds/NCS song ID to show on your profile.",
 			"type": "int",
 			"default": 0,
 			"min": 0,
-			"max": 9999999,
 			"control": {
 				"slider": false,
 				"arrows": false,
@@ -31,12 +30,12 @@
 			}
 		},
 		"profile-song-offset": {
-			"name": "Song Start Offset",
-			"description": "Start Offset of your profile song.",
+			"name": "Song Start Offset(s)",
+			"description": "Start Offset of your profile song. (seconds)",
 			"type": "int",
 			"default": 0,
 			"min": 0,
-			"max": 1000,
+			"max": 10000,
 			"control": {
 				"slider": false,
 				"arrows": true,

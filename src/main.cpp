@@ -113,14 +113,14 @@ class $modify(userThemeProfilePage, ProfilePage) {
     };
 
     CCLabelBMFont* ensureLabel(std::string const& id, std::string const& text, CCPoint pos, float scale, int z) {
-        auto label = typeinfo_cast<CCLabelBMFont*>(this->getChildByID(id));
+        auto label = typeinfo_cast<CCLabelBMFont*>(m_mainLayer->getChildByID(id));
         if (!label) {
             label = CCLabelBMFont::create(text.c_str(), "bigFont.fnt");
             label->setID(id);
             label->setScale(scale);
             label->setAnchorPoint({0.f, 0.5f});
             label->setPosition(pos);
-            this->addChild(label, z);
+            m_mainLayer->addChild(label, z);
         } else {
             label->setString(text.c_str());
         }
@@ -150,16 +150,15 @@ class $modify(userThemeProfilePage, ProfilePage) {
 
                 bpm = song->m_BPM == 0 ? 120 : song->m_BPM;
             } else {
-                main = fmt::format(
-                    "Now Playing:\n Unknown ({})",
-                    songId
-                );
+                clearSongUI();
+                return;
             }
         } else {
-            main = "Song: not yet";
+            clearSongUI();
+            return;
         }
 
-        m_fields->m_songLabel = ensureLabel(labelID, main, {20.f, 32.f}, m_fields->m_baseScale, 3);
+        m_fields->m_songLabel = ensureLabel(labelID, main, {20.f, 32.f}, m_fields->m_baseScale, 11);
 
         m_fields->m_currentBPM = bpm;
 
@@ -179,11 +178,23 @@ class $modify(userThemeProfilePage, ProfilePage) {
         }
 
         if (songId > 0 && downloading) {
-            ensureLabel(statusID, "Downloading...", {20.f, 18.f}, 0.28f, 3);
+            ensureLabel(statusID, "Downloading...", {20.f, 18.f}, 0.28f, 11);
         } else {
-            if (auto n = this->getChildByID(statusID))
+            if (auto n = m_mainLayer->getChildByID(statusID))
                 n->removeFromParent();
         }
+    }
+
+    void clearSongUI() {
+        if (auto n = m_mainLayer->getChildByID("profile-song-label"_spr))
+            n->removeFromParent();
+
+        if (m_fields->m_songLabel) {
+            m_fields->m_songLabel->stopAllActions();
+            m_fields->m_songLabel = nullptr;
+        }
+
+        m_fields->m_currentBPM = 0;
     }
 
     void cancelAllTimers() {
@@ -208,18 +219,18 @@ class $modify(userThemeProfilePage, ProfilePage) {
     void spawnMusicNote(float dt) {
         auto winSize = CCDirector::sharedDirector()->getWinSize();
 
-        auto notes = static_cast<CCMenu*>(getChildByID("profile-song-note"_spr));
+        auto notes = static_cast<CCMenu*>(m_mainLayer->getChildByID("profile-song-note"_spr));
 
         if (!notes) {
             notes = CCMenu::create();
             notes->setID("profile-song-note"_spr);
             notes->setPosition(CCPointZero);
-            this->addChild(notes, 100);
+            m_mainLayer->addChild(notes, 100);
         }
 
         auto note = CCSprite::createWithSpriteFrameName("GJ_musicIcon_001.png");
         note->setScale(0.5f);
-         // did i fix it correctly?
+        // did i fix it correctly?
 
         float x = winSize.width - 30.f;
         float startY = 50.f;
@@ -348,7 +359,6 @@ class $modify(userThemeProfilePage, ProfilePage) {
 
         setSongUI(0, false);
 
-        
         m_fields->waitingUserData = true;
         m_fields->waitedUserData = 0.f;
 
