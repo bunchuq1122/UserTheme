@@ -43,10 +43,9 @@ namespace {
     static int64_t readSongIdFromScore(GJUserScore* score) {
         if (!score) return 0;
 
-        auto const modID = Mod::get()->getID();
-        if (!user_data::contains(score, modID)) return 0;
+        if (!user_data::contains(score)) return 0;
 
-        auto res = user_data::get<matjson::Value>(score, modID);
+        auto res = user_data::get<matjson::Value>(score);
         if (res.isErr()) return 0;
 
         auto const& v = res.unwrap();
@@ -60,10 +59,9 @@ namespace {
     static float readSongOffsetFromScore(GJUserScore* score) {
         if (!score) return 0.f;
 
-        auto const modID = Mod::get()->getID();
-        if (!user_data::contains(score, modID)) return 0.f;
+        if (!user_data::contains(score)) return 0.f;
 
-        auto res = user_data::get<matjson::Value>(score, modID);
+        auto res = user_data::get<matjson::Value>(score);
         if (res.isErr()) return 0.f;
 
         auto const& v = res.unwrap();
@@ -210,33 +208,49 @@ class $modify(userThemeProfilePage, ProfilePage) {
     void spawnMusicNote(float dt) {
         auto winSize = CCDirector::sharedDirector()->getWinSize();
 
-        auto md = Mod::get()->getID();
+        auto notes = static_cast<CCMenu*>(getChildByID("profile-song-note"_spr));
+
+        if (!notes) {
+            notes = CCMenu::create();
+            notes->setID("profile-song-note"_spr);
+            notes->setPosition(CCPointZero);
+            this->addChild(notes, 100);
+        }
+
         auto note = CCSprite::createWithSpriteFrameName("GJ_musicIcon_001.png");
         note->setScale(0.5f);
-        note->setID("profile-song-note"_spr);
+        note->setID("note"); // did i fix it correctly?
 
         float x = winSize.width - 30.f;
         float startY = 50.f;
 
-        note->setPosition({x, startY});
-        this->addChild(note, 100);
+        note->setPosition({ x, startY });
+
+        notes->addChild(note);
 
         float randomOffset = rand() % 60 - 30;
 
-        auto move = CCEaseSineOut::create(CCMoveBy::create(2.f, {randomOffset, 250.f}));
+        auto move = CCEaseSineOut::create(
+            CCMoveBy::create(2.f, { randomOffset, 250.f })
+        );
+
         auto fade = CCFadeOut::create(1.5f);
+
         auto spawn = CCSpawn::create(move, fade, nullptr);
-        
-        // note
+
         if (auto score = this->m_score) {
             auto gm = GameManager::sharedState();
-
             ccColor3B col = gm->colorForIdx(score->m_color1);
-
-            note->setColor({col.r, col.g, col.b});
+            note->setColor(col);
         }
-        
-        note->runAction(CCSequence::create(spawn, CCRemoveSelf::create(), nullptr));
+
+        note->runAction(
+            CCSequence::create(
+                spawn,
+                CCRemoveSelf::create(),
+                nullptr
+            )
+        );
     }
 
     void startFade(float from, float to, float dur, Fields::AfterFade after) {
