@@ -151,7 +151,7 @@ class $modify(userThemeProfilePage, ProfilePage) {
 
                 bpm = song->m_BPM == 0 ? 120 : song->m_BPM;
             } else {
-                main = "failed to load" + utils::numToString(songId);
+                main = "Failed to load " + utils::numToString(songId);
             }
         } else {
             clearSongUI();
@@ -164,6 +164,7 @@ class $modify(userThemeProfilePage, ProfilePage) {
 
         if (Mod::get()->getSettingValue<bool>("no-pulse")) return;
 
+        // this is so stupid system fr pls someone give me better one
         if (m_fields->m_songLabel && m_fields->m_currentBPM > 0) {
             float beatDuration = 60.f / m_fields->m_currentBPM;
 
@@ -416,7 +417,20 @@ class $modify(userThemeProfilePage, ProfilePage) {
 
         bool downloaded = mdm->isSongDownloaded(static_cast<int>(songId));
         if (!downloaded) {
-            mdm->downloadSong(static_cast<int>(songId));
+            if (Mod::get()->getSettingValue<bool>("no-confitm")) {
+                mdm->downloadSong(static_cast<int>(songId));
+                return;
+            }
+            geode::createQuickPopup(
+                "Ohhh..",
+                "I think <cy>this song</c> is not downloaded yet! \nare you want to download it?", 
+                "nop", "Yes",
+                [this, songId](auto,bool e) {
+                    if (e) {
+                        downloadSongNow(songId);
+                    }
+                }
+            );
         }
 
         setSongUI(songId, !downloaded);
@@ -426,6 +440,11 @@ class $modify(userThemeProfilePage, ProfilePage) {
 
         this->unschedule(schedule_selector(userThemeProfilePage::pollSongReady));
         this->schedule(schedule_selector(userThemeProfilePage::pollSongReady), 0.1f);
+    }
+
+    void downloadSongNow(int songId) {
+        auto mdm = MusicDownloadManager::sharedState();
+        mdm->downloadSong(static_cast<int>(songId));
     }
 
     void pollSongReady(float dt) {

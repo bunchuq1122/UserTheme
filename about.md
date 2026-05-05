@@ -8,7 +8,8 @@
 
 Share your theme with everyone! *(thx for UserDataAPI)*
 
-`Tip: It may not load the song at first. Please wait a few seconds.`
+`Tip: It may not load the song at first. Please wait a few seconds or reopen the profile.`
+`Tip2: You have to download the song yourself if it failed to load.`
 
 ## Support this mod
 - [**Github**](https://github.com/bunchuq1122/UserTheme)

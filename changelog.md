@@ -17,5 +17,6 @@
 # v1.0.7(beta)
 - 'Disable Interface Pulse' and 'Disable Floating Notes' opt is added
 - Now it shows the progress of downloading
+- Now supports Android
 
-To-do: Fix errors occurring during song loads
+To-do: Fix errors occurring during song loads/downloads
