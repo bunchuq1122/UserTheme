@@ -151,17 +151,18 @@ class $modify(userThemeProfilePage, ProfilePage) {
 
                 bpm = song->m_BPM == 0 ? 120 : song->m_BPM;
             } else {
-                clearSongUI();
-                return;
+                main = "failed to load" + utils::numToString(songId);
             }
         } else {
             clearSongUI();
             return;
         }
 
-        m_fields->m_songLabel = ensureLabel(labelID, main, {20.f, 32.f}, m_fields->m_baseScale, 11);
+        m_fields->m_songLabel = ensureLabel(labelID, main, {20.f, 32.f}, m_fields->m_baseScale, 21);
 
         m_fields->m_currentBPM = bpm;
+
+        if (Mod::get()->getSettingValue<bool>("no-pulse")) return;
 
         if (m_fields->m_songLabel && m_fields->m_currentBPM > 0) {
             float beatDuration = 60.f / m_fields->m_currentBPM;
@@ -179,7 +180,12 @@ class $modify(userThemeProfilePage, ProfilePage) {
         }
 
         if (songId > 0 && downloading) {
-            ensureLabel(statusID, "Downloading...", {20.f, 18.f}, 0.28f, 11);
+            auto mdm = MusicDownloadManager::sharedState();
+            if (!mdm) return;
+            auto prog = mdm->getDownloadProgress(songId);
+            ensureLabel(statusID, 
+                "Downloading..." + utils::numToString(prog) + "%",
+                {20.f, 18.f}, 0.28f, 21);
         } else {
             if (auto n = m_mainLayer->getChildByID(statusID))
                 n->removeFromParent();
@@ -218,6 +224,7 @@ class $modify(userThemeProfilePage, ProfilePage) {
     }
 
     void spawnMusicNote(float dt) {
+        if (Mod::get()->getSettingValue<bool>("no-notes")) return;
         auto winSize = CCDirector::sharedDirector()->getWinSize();
 
         auto notes = static_cast<CCMenu*>(m_mainLayer->getChildByID("profile-song-note"_spr));

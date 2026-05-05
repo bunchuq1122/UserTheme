@@ -5,7 +5,7 @@
 	},
 	"id": "bunchuq1122.usertheme",
 	"name": "Custom Profile Music",
-	"version": "v1.0.7-alpha.1",
+	"version": "v1.0.7-beta.1",
 	"developer": "Bunchuq1122",
 	"description": "Liven up your profile with songs!",
 	"dependencies": {
@@ -42,6 +42,22 @@
 				"big-arrows": false,
 				"input": true
 			}
+		},
+		"adv-opt": {
+			"name": "Advanced Options",
+			"type": "title"
+		},
+		"no-pulse": {
+			"name": "Disable Interface Pulse",
+			"type": "bool",
+			"description": "Disables pulsing effects on the interface.",
+			"default": false
+		},
+		"no-notes": {
+			"name": "Disable Floating Notes",
+			"type": "bool",
+			"description": "Disables the floating notes on the right side of the screen.",
+			"default": false
 		}
 	},
 	"links": {

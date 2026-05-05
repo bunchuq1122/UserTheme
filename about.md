@@ -8,6 +8,8 @@
 
 Share your theme with everyone! *(thx for UserDataAPI)*
 
+`Tip: It may not load the song at first. Please wait a few seconds.`
+
 ## Support this mod
 - [**Github**](https://github.com/bunchuq1122/UserTheme)
 
