@@ -131,6 +131,7 @@ class $modify(userThemeProfilePage, ProfilePage) {
     void setSongUI(int64_t songId, bool downloading) {
         auto labelID  = "profile-song-label"_spr;
         auto statusID = "profile-song-status"_spr;
+        auto menu = m_mainLayer->getChildByID("left-menu");
 
         std::string main;
         int bpm = 0;
@@ -162,10 +163,8 @@ class $modify(userThemeProfilePage, ProfilePage) {
 
         m_fields->m_currentBPM = bpm;
 
-        if (Mod::get()->getSettingValue<bool>("no-pulse")) return;
-
         // this is so stupid system fr pls someone give me better one
-        if (m_fields->m_songLabel && m_fields->m_currentBPM > 0) {
+        if (m_fields->m_songLabel && m_fields->m_currentBPM > 0 && !Mod::get()->getSettingValue<bool>("no-pulse")) {
             float beatDuration = 60.f / m_fields->m_currentBPM;
 
             m_fields->m_songLabel->stopAllActions();
@@ -191,14 +190,43 @@ class $modify(userThemeProfilePage, ProfilePage) {
             if (auto n = m_mainLayer->getChildByID(statusID))
                 n->removeFromParent();
         }
+
+        if (Mod::get()->getSettingValue<bool>("no-label") && !menu->getChildByID("profile-song-button")) {
+            auto sprite = CCSprite::createWithSpriteFrameName("GJ_plainBtn_001.png");
+            auto icon = CCSprite::createWithSpriteFrameName("GJ_musicIcon_001.png");
+            m_fields->m_songLabel->setVisible(false);
+            icon->setPosition(sprite->getContentSize() / 2);
+            icon->setScale(1.0f);
+            sprite->addChild(icon);
+            sprite->setScale(0.7f);
+            auto btn = CCMenuItemSpriteExtra::create(sprite,
+                this,menu_selector(userThemeProfilePage::onSongInfo));
+            
+            btn->setID("profile-song-button");
+            menu->addChild(btn);
+            menu->updateLayout();
+        } else if (Mod::get()->getSettingValue<bool>("no-label")) {
+            m_fields->m_songLabel->setVisible(false);
+        }
+    }
+
+    void onSongInfo(CCObject*) {
+        std::string text = m_fields->m_songLabel->getString();
+        std::string cleanText = text.substr(13); // removing the "Now Playing: "
+
+        FLAlertLayer::create("Now Playing", 
+            cleanText.c_str(), 
+            "OK"
+        )->show();
     }
 
     void clearSongUI() {
-        if (auto n = m_mainLayer->getChildByID("profile-song-label"_spr))
+        if (auto n = m_mainLayer->getChildByID("profile-song-label"_spr)) {
+            n->stopAllActions(); // crashes when refreshing the profile if you do it on m_songLabel
             n->removeFromParent();
+        }
 
         if (m_fields->m_songLabel) {
-            m_fields->m_songLabel->stopAllActions();
             m_fields->m_songLabel = nullptr;
         }
 
@@ -493,16 +521,22 @@ class $modify(userThemeProfilePage, ProfilePage) {
     
     void onClose(CCObject* sender) {
         restoreNow();
+        auto eng = FMODAudioEngine::sharedEngine();
+        eng->stopMusic(m_fields->lastSongId); // it wont stop on its own for some reason...
         ProfilePage::onClose(sender);
     }
 
     void keyBackClicked() {
         restoreNow();
+        auto eng = FMODAudioEngine::sharedEngine();
+        eng->stopMusic(m_fields->lastSongId); // it wont stop on its own for some reason...
         ProfilePage::keyBackClicked();
     }
 
     void onExit() {
         restoreNow();
+        auto eng = FMODAudioEngine::sharedEngine();
+        eng->stopMusic(m_fields->lastSongId); // it wont stop on its own for some reason...
         ProfilePage::onExit();
     }
 };

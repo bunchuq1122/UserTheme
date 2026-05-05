@@ -50,6 +50,12 @@
 			"name": "Advanced Options",
 			"type": "title"
 		},
+		"no-label": {
+			"name": "Change Text For A Button",
+			"type": "bool",
+			"description": "Changes the label for a button.",
+			"default": false
+		},
 		"no-pulse": {
 			"name": "Disable Interface Pulse",
 			"type": "bool",
