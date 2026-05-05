@@ -1,11 +1,12 @@
 {
 	"geode": "5.7.1",
 	"gd": {
-		"win": "2.2081"
+		"win": "2.2081",
+		"android": "2.2081"
 	},
 	"id": "bunchuq1122.usertheme",
 	"name": "Custom Profile Music",
-	"version": "v1.0.7-beta.1",
+	"version": "v1.0.7",
 	"developer": "Bunchuq1122",
 	"description": "Liven up your profile with songs!",
 	"dependencies": {
@@ -61,7 +62,7 @@
 		}
 	},
 	"links": {
-		"community": "https://github.com/bunchuq1122/UserTheme",
+		"homepage": "https://github.com/bunchuq1122/UserTheme",
 		"source": "https://github.com/bunchuq1122/UserTheme"
 	},
 	"issues": {
