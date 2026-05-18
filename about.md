@@ -17,3 +17,6 @@ Share your theme with everyone! *(thx for UserDataAPI)*
 ## Credit
 - [**UserDataAPI**](https://geode-sdk.org/mods/hiimjasmine00.user_data_api) - 
 by hiimjasmine00
+
+## Special Thanks!
+- [Nosu-u](https://github.com/Nosu-u) (Helped make v1.0.7-beta.3)
